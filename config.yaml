@@ -1,0 +1,93 @@
+# HyperOil v2 — Trading Configuration
+# All trading parameters are here. Secrets go in .env
+
+symbols:
+  left: "CL"
+  right: "BRENTOIL"
+  dex_prefix: "xyz"  # HIP-3 dex format: xyz:CL, xyz:BRENTOIL
+
+market_data:
+  feed_type: "websocket"  # websocket | rest_poll
+  interval: "15m"
+  stale_timeout_sec: 30
+  reconnect_delay_initial_sec: 1.0
+  reconnect_delay_max_sec: 30.0
+  ws_ping_interval_sec: 20
+  ws_ping_timeout_sec: 10
+  rest_circuit_breaker_failures: 3
+  rest_circuit_breaker_cooldown_sec: 60
+
+signal:
+  price_source: "mid"  # mid | last
+  spread_mode: "log"   # log | linear
+  hedge_mode: "rolling_ols"  # fixed | vol_adjusted | rolling_ols | kalman
+  hedge_ratio_fixed: 1.0
+  beta_window: 168
+  z_window: 300
+  min_std: 0.0001
+  correlation_window: 168
+  volatility_window: 168
+
+grid:
+  entry_z: 1.5
+  exit_z: 0.2
+  stop_z: 4.5
+  cooldown_bars: 3
+  max_levels: 4
+  anti_repeat_bars: 12  # don't re-enter same level if stopped within N bars
+  levels:
+    - z: 1.5
+      mult: 1.0
+    - z: 2.0
+      mult: 1.2
+    - z: 2.5
+      mult: 1.5
+    - z: 3.0
+      mult: 2.0
+
+sizing:
+  base_notional_usd: 100.0
+  hedge_mode: "beta_adjusted"  # equal | beta_adjusted
+  max_notional_per_cycle: 1000.0
+  max_total_notional: 2000.0
+
+risk:
+  max_daily_loss_usd: 300.0
+  max_cycle_loss_usd: 120.0
+  max_cycle_minutes: 180
+  max_drawdown_usd: 500.0
+  max_drawdown_pct: 0.10
+  max_single_loss_usd: 50.0
+  max_mae_z: 4.0
+  min_correlation: 0.60
+  max_spread_bps: 50
+  max_consecutive_losses: 5
+  cooldown_after_stop_bars: 12
+  pause_on_bad_regime: true
+
+execution:
+  mode: "paper"  # paper | live
+  order_type: "market"  # market | limit_aggressive
+  reconcile_interval_sec: 2
+  fill_timeout_sec: 3
+  emergency_hedge: true
+  max_retries: 2
+
+storage:
+  sqlite_path: "data/hyperoil.db"
+  jsonl_dir: "data/jsonl/"
+  state_snapshot_interval_sec: 30
+
+observability:
+  log_level: "INFO"
+  log_format: "json"  # json | console
+  health_port: 8080
+  dashboard_enabled: true
+  dashboard_refresh_ms: 500
+
+backtest:
+  fee_maker_bps: 1.0
+  fee_taker_bps: 3.5
+  slippage_fixed_bps: 1.0
+  slippage_proportional_bps: 0.5
+  fill_assumption: "aggressive"  # conservative | aggressive

@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / Secrets
+.env
+*.pem
+*.key
+
+# Data (runtime, not code)
+data/*.db
+data/*.db-journal
+data/jsonl/*.jsonl
+data/*.pkl
+data/*.csv
+*.jsonl
+
+# State
+state_snapshot.json
+KILL_SWITCH
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
