@@ -81,7 +81,7 @@ storage:
 observability:
   log_level: "INFO"
   log_format: "json"  # json | console
-  health_port: 8080
+  health_port: 9090
   dashboard_enabled: true
   dashboard_refresh_ms: 500
 
