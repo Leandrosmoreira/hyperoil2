@@ -115,9 +115,16 @@ async def main_async(args: argparse.Namespace) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Collect HyperOil historical data")
     parser.add_argument("--interval", default="15m", help="Candle interval (default: 15m)")
-    parser.add_argument("--days", type=int, default=60, help="Days of history (default: 60)")
+    parser.add_argument("--days", type=int, default=30, help="Days of history (default: 30, max: ~30)")
     parser.add_argument("--output", default="data", help="Output directory (default: data/)")
     args = parser.parse_args()
+
+    # Warn about Hyperliquid limits
+    if args.days > 30:
+        print("\n⚠️  WARNING: Hyperliquid only has ~30 days of historical data available.")
+        print("   Requesting more than 30 days may fail or return incomplete data.")
+        print("   Capping at 30 days.\n")
+        args.days = 30
 
     asyncio.run(main_async(args))
 
