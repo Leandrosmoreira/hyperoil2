@@ -82,7 +82,7 @@ class RestClient:
         return f"{self._symbols.dex_prefix}:{symbol}"
 
     async def _post(self, payload: dict[str, Any]) -> Any:
-        """POST to /info with circuit breaker protection."""
+        """POST to /info with circuit breaker protection and exponential backoff retry."""
         if self._circuit_breaker.is_open:
             msg = "Circuit breaker is open, request blocked"
             raise ConnectionError(msg)
@@ -91,34 +91,70 @@ class RestClient:
             msg = "REST client not started"
             raise RuntimeError(msg)
 
-        try:
-            async with self._session.post(
-                f"{self.BASE_URL}/info",
-                json=payload,
-            ) as resp:
-                if resp.status == 429:
-                    retry_after = float(resp.headers.get("Retry-After", "5"))
-                    log.warning("rest_rate_limited", retry_after=retry_after)
+        max_retries = 3
+        backoff_base = 2.0
+
+        for attempt in range(max_retries):
+            try:
+                async with self._session.post(
+                    f"{self.BASE_URL}/info",
+                    json=payload,
+                ) as resp:
+                    if resp.status == 429:
+                        retry_after = float(resp.headers.get("Retry-After", "5"))
+                        log.warning("rest_rate_limited", retry_after=retry_after)
+                        self._circuit_breaker.record_failure()
+                        await asyncio.sleep(retry_after)
+                        msg = "Rate limited"
+                        raise ConnectionError(msg)
+
+                    if resp.status == 500:
+                        # Retry 500 errors with exponential backoff
+                        body = await resp.text()
+                        if attempt < max_retries - 1:
+                            wait_sec = backoff_base ** attempt
+                            log.warning(
+                                "rest_server_error_retry",
+                                status=500,
+                                attempt=attempt + 1,
+                                wait_sec=wait_sec,
+                                body=body[:200],
+                            )
+                            await asyncio.sleep(wait_sec)
+                            continue
+                        else:
+                            # Final attempt failed
+                            self._circuit_breaker.record_failure()
+                            log.warning("rest_error", status=resp.status, body=body[:500])
+                            msg = f"HTTP {resp.status}: {body[:200]}"
+                            raise ConnectionError(msg)
+
+                    if resp.status != 200:
+                        body = await resp.text()
+                        self._circuit_breaker.record_failure()
+                        log.warning("rest_error", status=resp.status, body=body[:500])
+                        msg = f"HTTP {resp.status}: {body[:200]}"
+                        raise ConnectionError(msg)
+
+                    data = await resp.json()
+                    self._circuit_breaker.record_success()
+                    return data
+
+            except aiohttp.ClientError as e:
+                if attempt < max_retries - 1:
+                    wait_sec = backoff_base ** attempt
+                    log.warning(
+                        "rest_client_error_retry",
+                        error=str(e),
+                        attempt=attempt + 1,
+                        wait_sec=wait_sec,
+                    )
+                    await asyncio.sleep(wait_sec)
+                    continue
+                else:
                     self._circuit_breaker.record_failure()
-                    await asyncio.sleep(retry_after)
-                    msg = "Rate limited"
-                    raise ConnectionError(msg)
-
-                if resp.status != 200:
-                    body = await resp.text()
-                    self._circuit_breaker.record_failure()
-                    log.warning("rest_error", status=resp.status, body=body[:500])
-                    msg = f"HTTP {resp.status}: {body[:200]}"
-                    raise ConnectionError(msg)
-
-                data = await resp.json()
-                self._circuit_breaker.record_success()
-                return data
-
-        except aiohttp.ClientError as e:
-            self._circuit_breaker.record_failure()
-            log.warning("rest_client_error", error=str(e))
-            raise ConnectionError(str(e)) from e
+                    log.warning("rest_client_error", error=str(e))
+                    raise ConnectionError(str(e)) from e
 
     async def fetch_candles(
         self,
