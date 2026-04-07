@@ -162,7 +162,8 @@ class Orchestrator:
         """Load historical 15m candles from DB into signal engine for instant warmup."""
         import aiosqlite
         db_path = self.config.storage.sqlite_path
-        needed = max(self.config.signal.z_window, self.config.signal.beta_window) + 50
+        # Need min_bars valid rows AFTER beta_window NaNs are dropped
+        needed = self._signal_engine._min_bars + self.config.signal.beta_window + 50
         try:
             async with aiosqlite.connect(db_path) as db:
                 for symbol in (
