@@ -129,6 +129,9 @@ class Orchestrator:
             for sig in (signal.SIGINT, signal.SIGTERM):
                 loop.add_signal_handler(sig, self._request_shutdown)
 
+        # Warm up signal engine from historical candles in DB
+        await self._warmup_signal_engine()
+
         # Start market data feed
         self._ws_feed = WsFeed(
             symbols=self.config.symbols,
@@ -154,6 +157,41 @@ class Orchestrator:
         """Signal the orchestrator to shut down gracefully."""
         log.info("shutdown_requested")
         self._shutdown_event.set()
+
+    async def _warmup_signal_engine(self) -> None:
+        """Load historical 15m candles from DB into signal engine for instant warmup."""
+        import aiosqlite
+        db_path = self.config.storage.sqlite_path
+        needed = max(self.config.signal.z_window, self.config.signal.beta_window) + 50
+        try:
+            async with aiosqlite.connect(db_path) as db:
+                for symbol in (
+                    f"xyz:{self.config.symbols.left}",
+                    f"xyz:{self.config.symbols.right}",
+                ):
+                    async with db.execute(
+                        "SELECT timestamp, open, high, low, close, volume FROM candles "
+                        "WHERE symbol=? AND interval='15m' ORDER BY timestamp DESC LIMIT ?",
+                        (symbol, needed),
+                    ) as cursor:
+                        rows = await cursor.fetchall()
+
+                    rows.reverse()  # oldest → newest
+                    for ts, o, h, l, c, v in rows:
+                        self._signal_engine.add_candle(
+                            symbol=symbol,
+                            timestamp_ms=ts,
+                            open=o, high=h, low=l, close=c,
+                            volume=v, mid=c,
+                        )
+                    log.info(
+                        "signal_engine_warmup",
+                        symbol=symbol,
+                        bars_loaded=len(rows),
+                        engine_ready=self._signal_engine.ready,
+                    )
+        except Exception:
+            log.exception("signal_engine_warmup_failed")
 
     async def _on_tick(self, tick: Any) -> None:
         """Called by WsFeed on each tick — update state."""
