@@ -222,6 +222,16 @@ class Orchestrator:
             volume=volume,
             mid=mid,
         )
+        await self.jsonl.write_candle(
+            symbol=symbol,
+            timestamp_ms=timestamp_ms,
+            open=open,
+            high=high,
+            low=low,
+            close=close,
+            volume=volume,
+            interval=self.config.market_data.interval,
+        )
         await self.process_bar()
 
     async def process_bar(self) -> None:

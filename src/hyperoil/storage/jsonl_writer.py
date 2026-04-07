@@ -56,3 +56,26 @@ class JsonlWriter:
     async def write_signal(self, **signal_data: Any) -> None:
         """Write a signal event."""
         await self.write("signals", signal_data)
+
+    async def write_candle(
+        self,
+        symbol: str,
+        timestamp_ms: int,
+        open: float,
+        high: float,
+        low: float,
+        close: float,
+        volume: float,
+        interval: str = "15m",
+    ) -> None:
+        """Persist a closed candle for future backtest/re-optimization."""
+        await self.write("candles", {
+            "symbol": symbol,
+            "interval": interval,
+            "timestamp_ms": timestamp_ms,
+            "open": open,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+        })
