@@ -290,26 +290,41 @@ class WsFeed:
                 continue
 
     async def _stale_detector(self) -> None:
-        """Background task to detect stale connections."""
+        """Background task to detect stale connections and force reconnect."""
         timeout = self._config.stale_timeout_sec
+        stale_since = 0.0
         while self._running:
             try:
                 await asyncio.sleep(5.0)  # Check every 5s
 
                 if self._state not in (ConnectionState.CONNECTED, ConnectionState.STALE):
+                    stale_since = 0.0
                     continue
 
                 if self._last_msg_time == 0:
                     continue
 
                 elapsed = time.time() - self._last_msg_time
-                if elapsed > timeout and self._state != ConnectionState.STALE:
-                    self._set_state(ConnectionState.STALE)
-                    log.warning(
-                        "ws_stale_detected",
-                        elapsed_sec=round(elapsed, 1),
-                        timeout=timeout,
-                    )
+                if elapsed > timeout:
+                    if self._state != ConnectionState.STALE:
+                        self._set_state(ConnectionState.STALE)
+                        stale_since = time.time()
+                        log.warning(
+                            "ws_stale_detected",
+                            elapsed_sec=round(elapsed, 1),
+                            timeout=timeout,
+                        )
+
+                    # Force reconnection after 2x timeout with no recovery
+                    stale_elapsed = time.time() - stale_since
+                    if stale_elapsed > timeout * 2:
+                        log.error("ws_stale_too_long", stale_sec=round(stale_elapsed, 1))
+                        if self._ws:
+                            try:
+                                await self._ws.close()
+                            except Exception:
+                                pass
+                        stale_since = 0.0
 
             except asyncio.CancelledError:
                 break
