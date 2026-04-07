@@ -19,6 +19,7 @@ from hyperoil.execution.fill_tracker import FillTracker
 from hyperoil.execution.hedge_emergency import HedgeEmergency
 from hyperoil.execution.order_manager import OrderManager
 from hyperoil.execution.reconcile import Reconciler
+from hyperoil.market_data.ws_feed import WsFeed
 from hyperoil.observability.dashboard import DashboardManager
 from hyperoil.observability.health import start_health_server, update_health
 from hyperoil.observability.logger import get_logger
@@ -74,6 +75,9 @@ class Orchestrator:
         if config.observability.dashboard_enabled:
             self._dashboard = DashboardManager(config.observability.dashboard_refresh_ms)
 
+        # Market data feed (initialized in start)
+        self._ws_feed: WsFeed | None = None
+
     async def start(self) -> None:
         """Initialize all modules and start the main loop."""
         log.info(
@@ -125,6 +129,15 @@ class Orchestrator:
             for sig in (signal.SIGINT, signal.SIGTERM):
                 loop.add_signal_handler(sig, self._request_shutdown)
 
+        # Start market data feed
+        self._ws_feed = WsFeed(
+            symbols=self.config.symbols,
+            market_data=self.config.market_data,
+            on_tick=self._on_tick,
+            on_candle=self._on_candle,
+        )
+        await self._ws_feed.start()
+
         # Start background tasks
         self._tasks.append(asyncio.create_task(self._health_loop()))
         self._tasks.append(asyncio.create_task(self._state_snapshot_loop()))
@@ -141,6 +154,36 @@ class Orchestrator:
         """Signal the orchestrator to shut down gracefully."""
         log.info("shutdown_requested")
         self._shutdown_event.set()
+
+    async def _on_tick(self, tick: Any) -> None:
+        """Called by WsFeed on each tick — update state."""
+        self.state.last_tick_ms = tick.timestamp_ms
+        if self._ws_feed:
+            self.state.ws_state = self._ws_feed.state
+
+    async def _on_candle(
+        self,
+        symbol: str,
+        timestamp_ms: int,
+        open: float,
+        high: float,
+        low: float,
+        close: float,
+        volume: float,
+        mid: float,
+    ) -> None:
+        """Called by WsFeed when a new candle closes."""
+        self._signal_engine.add_candle(
+            symbol=symbol,
+            timestamp_ms=timestamp_ms,
+            open=open,
+            high=high,
+            low=low,
+            close=close,
+            volume=volume,
+            mid=mid,
+        )
+        await self.process_bar()
 
     async def process_bar(self) -> None:
         """Process a single bar through the full pipeline.
@@ -378,6 +421,10 @@ class Orchestrator:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
 
+        # Stop market data feed
+        if self._ws_feed:
+            await self._ws_feed.stop()
+
         # Disconnect execution client
         if self._client:
             await self._client.disconnect()
@@ -407,6 +454,8 @@ class Orchestrator:
         """Periodically update health status."""
         while not self._shutdown_event.is_set():
             try:
+                if self._ws_feed:
+                    self.state.ws_state = self._ws_feed.state
                 update_health(self.state.to_health())
                 await asyncio.sleep(1.0)
             except asyncio.CancelledError:
