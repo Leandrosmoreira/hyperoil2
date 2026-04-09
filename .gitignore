@@ -29,7 +29,11 @@ data/*.db-journal
 data/jsonl/*.jsonl
 data/*.pkl
 data/*.csv
+data/donchian/*.parquet
 *.jsonl
+
+# Claude CLI local settings (per-machine)
+.claude/settings.local.json
 
 # State
 state_snapshot.json

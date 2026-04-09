@@ -90,3 +90,55 @@ market_data → signal_engine → strategy → execution
 - Small, focused commits
 - Prefix: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `infra:`
 - Message explains WHY, not WHAT
+
+## Donchian Data QA — MANDATORY automatic gating
+
+The Donchian data layer has already shipped 16 distinct data bugs (yfinance race
+conditions, OHLC physical violations, 21h lookhead bias, inverted forex, wrong
+DXY instrument, etc.). To prevent regressions, the `donchian-data-qa` subagent
+(`.claude/agents/donchian-data-qa.md`) MUST be invoked automatically — without
+the user asking — in the following situations:
+
+**BEFORE editing any of these files:**
+- `src/hyperoil/donchian/data/collector.py`
+- `src/hyperoil/donchian/data/storage.py`
+- `src/hyperoil/donchian/data/models.py`
+- `donchian_config.yaml`
+- `scripts/collect_donchian_data.py`
+- `scripts/persist_donchian_to_db.py`
+- Anything under `scripts/validation/`
+
+The pre-edit invocation establishes a baseline: "is the data layer healthy
+right now, before I touch it?" If the QA agent reports BLOQUEADO or DEGRADADO,
+stop and surface the findings to the user before making the planned change.
+
+**AFTER any of the following actions complete:**
+- Re-collecting data (`collect_donchian_data.py` ran)
+- Re-persisting parquets to SQLite (`persist_donchian_to_db.py` ran)
+- Adding, removing, or renaming an asset in `donchian_config.yaml`
+- Changing `invert_price`, `yfinance_ticker`, `binance_symbol`, or `needs_ffill`
+  on any asset
+- Editing any function in `collector.py` (especially `daily_to_4h_grid`,
+  `forward_fill_4h`, `sanitize_ohlc`, `invert_ohlc`, `fetch_yfinance`)
+- Editing the upsert path in `storage.py`
+- Before promoting Sprint 1 → Sprint 2 (signal engine)
+- Before any backtest run on the Donchian universe
+
+The post-action invocation confirms: "did my change preserve data integrity?"
+You must read and act on the QA report before declaring the task complete.
+
+**How to invoke:** use the Agent tool with `subagent_type="general-purpose"` and
+explicitly tell it to follow `.claude/agents/donchian-data-qa.md`. Pass the
+specific change being made so it can pick the right subset of checks from the
+"mudança → checks obrigatórios" matrix in that file. Do not run all 14 checks
+blindly — the matrix exists to keep the loop fast.
+
+**Do not skip this even if the change looks trivial.** Bug #1 (yfinance race
+condition that corrupted 11/25 symbols) was introduced by a one-line change to
+add concurrency. Bug #3 (21h lookhead) was a default-argument oversight in
+`daily_to_4h_grid`. Trivial-looking edits to the data layer have catastrophic
+historical track record.
+
+**Exception:** if the user explicitly says "skip QA" or "não rode o QA", honor
+that — but warn them once, in the same response, that the gate is being
+bypassed and they own the risk.

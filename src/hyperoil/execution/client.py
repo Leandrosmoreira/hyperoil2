@@ -127,6 +127,66 @@ class HyperliquidClient:
 
         return await self._live_market_order(symbol, side, qty, cloid)
 
+    async def place_limit_post_only(
+        self,
+        symbol: str,
+        side: OrderSide,
+        qty: float,
+        price: float,
+        cloid: str | None = None,
+    ) -> OrderResult:
+        """Place a post-only limit order (TIF=Alo on Hyperliquid).
+
+        If the price would cross the spread the exchange rejects the order
+        rather than crossing as taker. Used by the Donchian strategy where
+        every entry must be maker (taker fees on HIP-3 destroy edge).
+        """
+        if not self._connected:
+            return OrderResult(success=False, error="client_not_connected")
+
+        if self.is_paper:
+            return self._paper_limit_order(symbol, side, qty, price, cloid)
+
+        is_buy = side == OrderSide.BUY
+
+        def _place() -> dict:
+            return self._exchange.order(
+                name=symbol,
+                is_buy=is_buy,
+                sz=qty,
+                limit_px=price,
+                order_type={"limit": {"tif": "Alo"}},  # Add liquidity only = post-only
+                cloid=cloid,
+            )
+
+        try:
+            result = await asyncio.to_thread(_place)
+            return self._parse_order_result(result, cloid)
+        except Exception as exc:
+            log.error(
+                "live_post_only_failed",
+                symbol=symbol, side=side.value, qty=qty, price=price, error=str(exc),
+            )
+            return OrderResult(success=False, order_id=cloid, error=str(exc))
+
+    def _paper_limit_order(
+        self, symbol: str, side: OrderSide, qty: float, price: float, cloid: str | None,
+    ) -> OrderResult:
+        """Simulate a limit order — assume immediate fill at the limit price."""
+        self._paper_oid_counter += 1
+        oid = self._paper_oid_counter
+        order_id = cloid or f"paper-lim-{oid}"
+        log.info(
+            "paper_limit_filled",
+            symbol=symbol, side=side.value, qty=qty, price=price, order_id=order_id,
+        )
+        return OrderResult(
+            success=True,
+            order_id=order_id,
+            exchange_oid=oid,
+            status="filled",
+        )
+
     async def cancel_order(self, symbol: str, exchange_oid: int) -> bool:
         """Cancel an open order by exchange OID."""
         if not self._connected:
