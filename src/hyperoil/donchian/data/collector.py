@@ -33,6 +33,25 @@ log = get_logger(__name__)
 INTERVAL_MS = 4 * 60 * 60 * 1000
 
 
+def _to_epoch_ms(dt_like: "pd.DatetimeIndex | pd.Series") -> "pd.Index | pd.Series":
+    """Convert tz-aware datetime to Unix milliseconds.
+
+    Safe across pandas 2.x (datetime64[ns]) and 3.0+ (datetime64[ms/us]).
+    Avoids ``.astype('int64') // 10**6`` whose result unit depends on the
+    stored resolution — in pandas 3.0 a datetime64[ms] index returns ms
+    directly, making the ``// 10**6`` produce wrong microscale timestamps.
+    Epoch subtraction via ``total_seconds()`` is resolution-agnostic.
+    """
+    _epoch = pd.Timestamp("1970-01-01", tz="UTC")
+    if isinstance(dt_like, pd.DatetimeIndex):
+        return pd.Index(
+            ((dt_like - _epoch).total_seconds() * 1000).astype("int64"),
+            name=dt_like.name,
+        )
+    # Series
+    return (dt_like - _epoch).dt.total_seconds().mul(1000).astype("int64")
+
+
 # CRITICAL: yfinance uses module-level HTTP session + response cache that is
 # NOT thread-safe. With concurrent workers (asyncio.to_thread + Semaphore>1),
 # two simultaneous calls can swap responses and produce DIFFERENT symbols
@@ -194,7 +213,7 @@ def fetch_yfinance(
     else:
         df.index = df.index.tz_convert("UTC")
 
-    df["timestamp_ms"] = (df.index.astype("int64") // 10**6).astype("int64")
+    df["timestamp_ms"] = _to_epoch_ms(df.index)
     # Tag with the ACTUAL interval that produced the rows (may differ from
     # the requested interval if a fallback path was taken).
     df["source"] = f"yfinance_{actual_interval}"
@@ -234,7 +253,7 @@ def resample_to_4h(df: pd.DataFrame) -> pd.DataFrame:
         "volume": rs["volume"].sum(),
     })
     agg = agg.dropna(subset=["close"])
-    agg["timestamp_ms"] = (agg.index.astype("int64") // 10**6).astype("int64")
+    agg["timestamp_ms"] = _to_epoch_ms(agg.index)
     agg["source"] = "yfinance_4h"
     return agg.reset_index(drop=True)[
         ["timestamp_ms", "open", "high", "low", "close", "volume", "source"]
@@ -269,7 +288,7 @@ def daily_to_4h_grid(df: pd.DataFrame) -> pd.DataFrame:
     df["dt"] = pd.to_datetime(df["timestamp_ms"], unit="ms", utc=True)
     # Anchor at the NEXT UTC midnight to avoid lookhead bias
     df["dt"] = df["dt"].dt.floor("D") + pd.Timedelta(days=1)
-    df["timestamp_ms"] = (df["dt"].astype("int64") // 10**6).astype("int64")
+    df["timestamp_ms"] = _to_epoch_ms(df["dt"])
     df["source"] = "yfinance_1d"
     out = df[["timestamp_ms", "open", "high", "low", "close", "volume", "source"]].copy()
     # Collapse any duplicate timestamps (multi-ticker splits etc.)
@@ -349,7 +368,7 @@ def forward_fill_4h(df: pd.DataFrame, start_ms: int, end_ms: int) -> pd.DataFram
         end=pd.to_datetime(end_ms, unit="ms", utc=True),
         freq="4h",
     )
-    grid_ms = (grid.astype("int64") // 10**6).astype("int64")
+    grid_ms = _to_epoch_ms(grid)
 
     df = df.set_index("timestamp_ms").reindex(grid_ms)
 
