@@ -37,6 +37,11 @@ dependencies = [
 
     # Optimization
     "optuna>=3.5",
+
+    # Donchian strategy — data sources
+    "yfinance>=0.2.36",
+    "ccxt>=4.2",
+    "pyarrow>=15.0",
 ]
 
 [project.optional-dependencies]

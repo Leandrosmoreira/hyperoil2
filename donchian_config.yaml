@@ -1,0 +1,238 @@
+# Donchian Ensemble Trend Following — 25 Assets / 5 Classes
+# Based on Zarattini, Pagani & Barbon (Swiss Finance Institute, 2025)
+# All tickers verified on Hyperliquid HIP-3 dexes (xyz, hyna) — 2026-04-09
+
+execution_mode: paper
+
+# Order entry policy (PROJECT RULE):
+# All entries MUST be maker post-only (limit_maker). Taker fees on trade.xyz
+# HIP-3 are 5-10x maker fees and destroy edge on a high-frequency strategy.
+# Exits triggered by stops MAY use taker (safety > savings).
+order_policy:
+  entry_order_type: limit_maker     # post-only, never crosses the book
+  exit_order_type: limit_maker      # also post-only by default
+  emergency_exit_order_type: market # only when trailing stop hit + would miss
+  post_only_retry_offset_bps: 1.0   # if rejected, requote 1 bp better
+  post_only_max_retries: 3
+  unfilled_cancel_after_bars: 1     # cancel limit if not filled in 1 bar (4h)
+
+universe:
+  assets:
+    # --- Crypto Major (4) — hyna: dex (HIP-3 perp) ---
+    - symbol: BTC
+      hl_ticker: BTC
+      dex_prefix: hyna
+      asset_class: crypto_major
+      yfinance_ticker: BTC-USD
+      binance_symbol: BTCUSDT
+    - symbol: ETH
+      hl_ticker: ETH
+      dex_prefix: hyna
+      asset_class: crypto_major
+      yfinance_ticker: ETH-USD
+      binance_symbol: ETHUSDT
+    - symbol: BNB
+      hl_ticker: BNB
+      dex_prefix: hyna
+      asset_class: crypto_major
+      yfinance_ticker: BNB-USD
+      binance_symbol: BNBUSDT
+    - symbol: XRP
+      hl_ticker: XRP
+      dex_prefix: hyna
+      asset_class: crypto_major
+      yfinance_ticker: XRP-USD
+      binance_symbol: XRPUSDT
+
+    # --- Crypto L1 / Minor (4) — hyna: dex ---
+    - symbol: SOL
+      hl_ticker: SOL
+      dex_prefix: hyna
+      asset_class: crypto_minor
+      yfinance_ticker: SOL-USD
+      binance_symbol: SOLUSDT
+    - symbol: HYPE
+      hl_ticker: HYPE
+      dex_prefix: hyna
+      asset_class: crypto_minor
+      yfinance_ticker: null
+      binance_symbol: HYPEUSDT
+    - symbol: DOGE
+      hl_ticker: DOGE
+      dex_prefix: hyna
+      asset_class: crypto_minor
+      yfinance_ticker: DOGE-USD
+      binance_symbol: DOGEUSDT
+    - symbol: SUI
+      hl_ticker: SUI
+      dex_prefix: hyna
+      asset_class: crypto_minor
+      yfinance_ticker: SUI20947-USD
+      binance_symbol: SUIUSDT
+
+    # --- Commodities (5) — xyz: dex (HIP-3 perp) ---
+    - symbol: GOLD
+      hl_ticker: GOLD
+      dex_prefix: xyz
+      asset_class: commodity
+      yfinance_ticker: GC=F
+      needs_ffill: true
+    - symbol: SILVER
+      hl_ticker: SILVER
+      dex_prefix: xyz
+      asset_class: commodity
+      yfinance_ticker: SI=F
+      needs_ffill: true
+    - symbol: OIL
+      hl_ticker: CL
+      dex_prefix: xyz
+      asset_class: commodity
+      yfinance_ticker: CL=F
+      needs_ffill: true
+    - symbol: BRENT
+      hl_ticker: BRENTOIL
+      dex_prefix: xyz
+      asset_class: commodity
+      yfinance_ticker: BZ=F
+      needs_ffill: true
+    - symbol: NATGAS
+      hl_ticker: NATGAS
+      dex_prefix: xyz
+      asset_class: commodity
+      yfinance_ticker: NG=F
+      needs_ffill: true
+
+    # --- Stocks (5) — xyz: dex (HIP-3 perp) ---
+    - symbol: NVDA
+      hl_ticker: NVDA
+      dex_prefix: xyz
+      asset_class: stock
+      yfinance_ticker: NVDA
+      needs_ffill: true
+    - symbol: TSLA
+      hl_ticker: TSLA
+      dex_prefix: xyz
+      asset_class: stock
+      yfinance_ticker: TSLA
+      needs_ffill: true
+    - symbol: AAPL
+      hl_ticker: AAPL
+      dex_prefix: xyz
+      asset_class: stock
+      yfinance_ticker: AAPL
+      needs_ffill: true
+    - symbol: AMZN
+      hl_ticker: AMZN
+      dex_prefix: xyz
+      asset_class: stock
+      yfinance_ticker: AMZN
+      needs_ffill: true
+    - symbol: MSTR
+      hl_ticker: MSTR
+      dex_prefix: xyz
+      asset_class: stock
+      yfinance_ticker: MSTR
+      needs_ffill: true
+
+    # --- Indices (3) — xyz: dex (HIP-3 perp) ---
+    - symbol: SP500
+      hl_ticker: SP500
+      dex_prefix: xyz
+      asset_class: index
+      yfinance_ticker: "^GSPC"
+      needs_ffill: true
+    - symbol: XYZ100
+      hl_ticker: XYZ100
+      dex_prefix: xyz
+      asset_class: index
+      yfinance_ticker: "^NDX"
+      needs_ffill: true
+    - symbol: JP225
+      hl_ticker: JP225
+      dex_prefix: xyz
+      asset_class: index
+      yfinance_ticker: "^N225"
+      needs_ffill: true
+
+    # --- Forex (4) — xyz: dex (HIP-3 perp) ---
+    - symbol: EUR
+      hl_ticker: EUR
+      dex_prefix: xyz
+      asset_class: forex
+      yfinance_ticker: EUR=X
+      needs_ffill: true
+      invert_price: true   # yfinance EUR=X is USDEUR; xyz:EUR perp is EURUSD direct
+                           # confirmed 2026-04-09: HL oracle 1.1699 vs our 0.8726 (=1/1.1463)
+    - symbol: JPY
+      hl_ticker: JPY
+      dex_prefix: xyz
+      asset_class: forex
+      yfinance_ticker: USDJPY=X
+      needs_ffill: true
+    - symbol: DXY
+      hl_ticker: DXY
+      dex_prefix: xyz
+      asset_class: forex
+      yfinance_ticker: DX-Y.NYB   # ICE DXY index (~97 range), matches xyz:DXY oracle
+                                  # NOT UUP (an ETF tracking DXY at ~$28; wrong magnitude)
+      needs_ffill: true
+    - symbol: COPPER
+      hl_ticker: COPPER
+      dex_prefix: xyz
+      asset_class: forex   # Listed under forex slot to keep balance; or move to commodity
+      yfinance_ticker: HG=F
+      needs_ffill: true
+
+signal:
+  lookbacks: [30, 60, 120, 180, 360, 540, 900, 1500, 2160]
+  ema_period: 200
+  min_score_entry: 0.33
+  interval: "4h"
+
+risk_parity:
+  vol_window: 30
+  rebal_threshold: 0.20
+  rebal_frequency: weekly
+
+sizing:
+  vol_target_annual: 0.25
+  vol_factor_cap: 3.0
+  max_position_pct: 0.40
+  cash_reserve_pct: 0.20
+  score_thresholds:
+    half_pos: 0.33
+    full_pos: 0.55
+    lever_1_5x: 0.55
+    lever_2x: 0.70
+    lever_3x: 0.85
+
+risk:
+  max_drawdown_pct: 0.20
+  dd_reduce_15_pct: 0.15
+  dd_reduce_10_pct: 0.10
+  min_cash_pct: 0.10
+  trailing_stop_never_recedes: true
+
+backtest:
+  start_date: "2023-04-01"
+  end_date: "2026-04-09"
+  min_train_months: 9
+  n_trials: 200
+  initial_capital: 1000.0
+  # trade.xyz HIP-3 fees (verified 2026-04-09):
+  # - Standard mode (crypto, MSTR): taker 9 bps / maker 3 bps
+  # - Growth mode (commodities, stocks, indices, FX): taker 0.9 bps / maker 0.3 bps
+  # Project rule: ALL entries are maker post-only. Backtest models entries at maker.
+  # Stop exits may pay taker — slippage_bps captures that.
+  fee_taker_bps: 5.0     # only used for emergency exits
+  fee_maker_bps: 1.5     # blended: ~half crypto (3) half growth (0.3) — ENTRIES use this
+  slippage_bps: 2.0      # accounts for occasional stop-out at taker
+
+storage:
+  parquet_dir: data/donchian
+  sqlite_path: data/hyperoil.db
+  jsonl_dir: data/jsonl
+
+observability:
+  health_port: 9091
+  log_level: INFO

@@ -13,9 +13,16 @@ def main() -> None:
         description="HyperOil v2 — Pair Trading Bot for Hyperliquid DEX",
     )
     parser.add_argument(
+        "--strategy",
+        choices=["pair_trading", "donchian"],
+        default="pair_trading",
+        help="Which strategy to run (default: pair_trading)",
+    )
+    parser.add_argument(
         "--config",
         default="config.yaml",
-        help="Path to config file (default: config.yaml)",
+        help="Path to config file (default: config.yaml for pair_trading, "
+             "donchian_config.yaml for donchian)",
     )
     parser.add_argument(
         "--mode",
@@ -37,6 +44,10 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    if args.strategy == "donchian":
+        _run_donchian(args)
+        return
 
     # Load config
     from hyperoil.config import apply_env_overrides, load_config, load_env
@@ -91,6 +102,50 @@ def main() -> None:
     from hyperoil.core.orchestrator import Orchestrator
 
     orchestrator = Orchestrator(config, env)
+
+    try:
+        asyncio.run(orchestrator.start())
+    except KeyboardInterrupt:
+        log.info("keyboard_interrupt")
+    except Exception:
+        log.exception("fatal_error")
+        sys.exit(1)
+
+
+def _run_donchian(args: argparse.Namespace) -> None:
+    """Bootstrap and run the Donchian Ensemble orchestrator."""
+    from hyperoil.config import load_env
+    from hyperoil.donchian.config import load_donchian_config
+    from hyperoil.donchian.core.orchestrator import DonchianOrchestrator
+    from hyperoil.observability.logger import get_logger, setup_logging
+
+    # Default to donchian_config.yaml if user left --config at the default.
+    config_path = args.config if args.config != "config.yaml" else "donchian_config.yaml"
+
+    try:
+        cfg = load_donchian_config(config_path)
+    except FileNotFoundError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.mode in ("paper", "live"):
+        cfg = cfg.model_copy(update={"execution_mode": args.mode})
+
+    setup_logging(
+        level=args.log_level or cfg.observability.log_level,
+        fmt=args.log_format or "json",
+    )
+    log = get_logger("main_donchian")
+    log.info(
+        "donchian_starting",
+        version="2.0.0",
+        mode=cfg.execution_mode,
+        n_assets=len(cfg.universe.assets),
+        config_path=config_path,
+    )
+
+    env = load_env()
+    orchestrator = DonchianOrchestrator(cfg=cfg, env=env)
 
     try:
         asyncio.run(orchestrator.start())

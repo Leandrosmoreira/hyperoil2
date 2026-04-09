@@ -1,0 +1,258 @@
+{
+  "generated_at": "2026-04-09T12:02:07.146358",
+  "total_assets": 25,
+  "verified": 25,
+  "missing": [],
+  "ticker_mapping": {
+    "BTC": {
+      "hl_ticker": "BTC",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:BTC",
+      "sz_decimals": 5,
+      "max_leverage": 40,
+      "asset_class": "crypto_major",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "ETH": {
+      "hl_ticker": "ETH",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:ETH",
+      "sz_decimals": 4,
+      "max_leverage": 25,
+      "asset_class": "crypto_major",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "BNB": {
+      "hl_ticker": "BNB",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:BNB",
+      "sz_decimals": 3,
+      "max_leverage": 10,
+      "asset_class": "crypto_major",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "XRP": {
+      "hl_ticker": "XRP",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:XRP",
+      "sz_decimals": 0,
+      "max_leverage": 20,
+      "asset_class": "crypto_major",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "SOL": {
+      "hl_ticker": "SOL",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:SOL",
+      "sz_decimals": 2,
+      "max_leverage": 20,
+      "asset_class": "crypto_minor",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "HYPE": {
+      "hl_ticker": "HYPE",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:HYPE",
+      "sz_decimals": 2,
+      "max_leverage": 10,
+      "asset_class": "crypto_minor",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "DOGE": {
+      "hl_ticker": "DOGE",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:DOGE",
+      "sz_decimals": 0,
+      "max_leverage": 10,
+      "asset_class": "crypto_minor",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "SUI": {
+      "hl_ticker": "SUI",
+      "dex_prefix": "hyna",
+      "dex_symbol": "hyna:SUI",
+      "sz_decimals": 1,
+      "max_leverage": 10,
+      "asset_class": "crypto_minor",
+      "source": "dex:hyna",
+      "verified": true
+    },
+    "GOLD": {
+      "hl_ticker": "GOLD",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:GOLD",
+      "sz_decimals": 4,
+      "max_leverage": 25,
+      "asset_class": "commodity",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "SILVER": {
+      "hl_ticker": "SILVER",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:SILVER",
+      "sz_decimals": 2,
+      "max_leverage": 25,
+      "asset_class": "commodity",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "OIL": {
+      "hl_ticker": "CL",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:CL",
+      "sz_decimals": 3,
+      "max_leverage": 20,
+      "asset_class": "commodity",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "BRENT": {
+      "hl_ticker": "BRENTOIL",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:BRENTOIL",
+      "sz_decimals": 2,
+      "max_leverage": 20,
+      "asset_class": "commodity",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "NATGAS": {
+      "hl_ticker": "NATGAS",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:NATGAS",
+      "sz_decimals": 1,
+      "max_leverage": 10,
+      "asset_class": "commodity",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "NVDA": {
+      "hl_ticker": "NVDA",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:NVDA",
+      "sz_decimals": 3,
+      "max_leverage": 20,
+      "asset_class": "stock",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "TSLA": {
+      "hl_ticker": "TSLA",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:TSLA",
+      "sz_decimals": 3,
+      "max_leverage": 10,
+      "asset_class": "stock",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "AAPL": {
+      "hl_ticker": "AAPL",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:AAPL",
+      "sz_decimals": 3,
+      "max_leverage": 20,
+      "asset_class": "stock",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "AMZN": {
+      "hl_ticker": "AMZN",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:AMZN",
+      "sz_decimals": 3,
+      "max_leverage": 10,
+      "asset_class": "stock",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "MSTR": {
+      "hl_ticker": "MSTR",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:MSTR",
+      "sz_decimals": 3,
+      "max_leverage": 10,
+      "asset_class": "stock",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "SP500": {
+      "hl_ticker": "SP500",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:SP500",
+      "sz_decimals": 3,
+      "max_leverage": 50,
+      "asset_class": "index",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "XYZ100": {
+      "hl_ticker": "XYZ100",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:XYZ100",
+      "sz_decimals": 4,
+      "max_leverage": 30,
+      "asset_class": "index",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "JP225": {
+      "hl_ticker": "JP225",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:JP225",
+      "sz_decimals": 5,
+      "max_leverage": 20,
+      "asset_class": "index",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "EUR": {
+      "hl_ticker": "EUR",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:EUR",
+      "sz_decimals": 1,
+      "max_leverage": 50,
+      "asset_class": "forex",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "JPY": {
+      "hl_ticker": "JPY",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:JPY",
+      "sz_decimals": 2,
+      "max_leverage": 50,
+      "asset_class": "forex",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "DXY": {
+      "hl_ticker": "DXY",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:DXY",
+      "sz_decimals": 2,
+      "max_leverage": 20,
+      "asset_class": "forex",
+      "source": "dex:xyz",
+      "verified": true
+    },
+    "COPPER": {
+      "hl_ticker": "COPPER",
+      "dex_prefix": "xyz",
+      "dex_symbol": "xyz:COPPER",
+      "sz_decimals": 2,
+      "max_leverage": 20,
+      "asset_class": "forex",
+      "source": "dex:xyz",
+      "verified": true
+    }
+  }
+}
