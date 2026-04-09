@@ -162,8 +162,16 @@ def fetch_yfinance(
         )
 
     # Multi-asset download yields a MultiIndex column header — flatten it.
+    # yfinance changed the MultiIndex axis order across versions:
+    #   older (<0.2.50): (Field, Ticker) → level 0 = "Open", "High", …
+    #   newer (≥0.2.50): (Ticker, Field) → level 0 = "GC=F", "GC=F", …
+    # Detect which level holds OHLCV names and use that one; never assume level 0.
     if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+        _ohlcv = {"Open", "High", "Low", "Close", "Volume", "Adj Close"}
+        if _ohlcv & set(df.columns.get_level_values(0).tolist()):
+            df.columns = df.columns.get_level_values(0)   # old yfinance
+        else:
+            df.columns = df.columns.get_level_values(-1)  # new yfinance
 
     # Defensive: some yfinance paths (especially Ticker.history combined with
     # download fallbacks or future versions) can leave duplicate columns.
