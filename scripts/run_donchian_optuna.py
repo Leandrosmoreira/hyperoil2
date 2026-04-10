@@ -24,6 +24,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--min-train-months", type=int, default=9)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--out", default="data/donchian/optuna_best.json")
+    p.add_argument("--jobs", type=int, default=-1, help="Parallel trials (-1 = all cores)")
     return p.parse_args()
 
 
@@ -38,7 +39,7 @@ def main() -> None:
         min_train_months=args.min_train_months,
         seed=args.seed,
     )
-    study = runner.run_study()
+    study = runner.run_study(n_jobs=args.jobs)
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

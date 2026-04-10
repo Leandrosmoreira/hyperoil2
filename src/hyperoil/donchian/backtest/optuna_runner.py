@@ -249,14 +249,14 @@ class DonchianOptunaRunner:
 
         return float(sum(scores) / len(scores))
 
-    def run_study(self, study_name: str = "donchian_ensemble") -> optuna.Study:
+    def run_study(self, study_name: str = "donchian_ensemble", n_jobs: int = -1) -> optuna.Study:
         study = optuna.create_study(
             study_name=study_name,
             direction="maximize",
             sampler=TPESampler(seed=self.seed),
             pruner=MedianPruner(n_startup_trials=10, n_warmup_steps=3),
         )
-        study.optimize(self.objective, n_trials=self.n_trials, gc_after_trial=True)
+        study.optimize(self.objective, n_trials=self.n_trials, gc_after_trial=True, n_jobs=n_jobs)
         log.info(
             "optuna_complete",
             best_value=study.best_value,
