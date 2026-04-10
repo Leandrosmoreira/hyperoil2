@@ -83,6 +83,40 @@ class MultiAssetReplayEngine:
         self._needs_ffill = {_dex_symbol(a): a.needs_ffill for a in assets}
         self._aligned: pd.DataFrame | None = None
 
+    @classmethod
+    def from_wide(
+        cls,
+        wide: pd.DataFrame,
+        assets: list[AssetConfig],
+        start_ms: int | None = None,
+        end_ms: int | None = None,
+        interval_ms: int = INTERVAL_4H_MS,
+    ) -> "MultiAssetReplayEngine":
+        """Build an engine from a pre-loaded wide DataFrame (avoids parquet I/O).
+
+        Used by the Optuna runner to pre-load once and slice per fold, instead
+        of re-reading 25 parquets for every trial × fold combination.
+        """
+        engine = cls.__new__(cls)
+        engine.parquet_dir = ""
+        engine.assets = assets
+        engine.start_ms = start_ms
+        engine.end_ms = end_ms
+        engine.interval_ms = interval_ms
+        engine._symbols = [_dex_symbol(a) for a in assets]
+        engine._needs_ffill = {_dex_symbol(a): a.needs_ffill for a in assets}
+
+        idx = wide.index
+        if start_ms is not None:
+            idx_mask = idx >= start_ms
+            wide = wide.loc[idx_mask]
+        if end_ms is not None:
+            idx_mask = wide.index <= end_ms
+            wide = wide.loc[idx_mask]
+
+        engine._aligned = wide
+        return engine
+
     @property
     def symbols(self) -> list[str]:
         return list(self._symbols)

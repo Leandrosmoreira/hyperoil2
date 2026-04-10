@@ -192,11 +192,12 @@ class DonchianOptunaRunner:
         self.min_train_months = min_train_months
         self.seed = seed
 
-        # Pre-load the full grid once to determine fold boundaries.
+        # Pre-load the full grid ONCE — reused across all trial-fold slices
+        # to avoid reading 25 parquets per trial (4800+ redundant disk reads).
         full_replay = MultiAssetReplayEngine(parquet_dir, cfg.universe.assets)
-        wide = full_replay.load()
-        self.grid_start = int(wide.index[0])
-        self.grid_end = int(wide.index[-1])
+        self._wide = full_replay.load()
+        self.grid_start = int(self._wide.index[0])
+        self.grid_end = int(self._wide.index[-1])
         self.folds = make_folds(
             self.grid_start, self.grid_end,
             n_folds=n_folds, min_train_months=min_train_months,
@@ -211,8 +212,9 @@ class DonchianOptunaRunner:
         start_ms: int,
         end_ms: int,
     ) -> float:
-        replay = MultiAssetReplayEngine(
-            self.parquet_dir, cfg.universe.assets,
+        # Slice the pre-loaded wide DataFrame — no parquet I/O per trial.
+        replay = MultiAssetReplayEngine.from_wide(
+            self._wide, cfg.universe.assets,
             start_ms=start_ms, end_ms=end_ms,
         )
         sim = DonchianSimulator(
